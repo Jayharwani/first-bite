@@ -22,4 +22,13 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         // No offline shell. The app still works online.
       })
   })
+
+  // A new worker taking control means a new build is live. Reload once so the
+  // running page is not left on the bundle it started with.
+  let reloading = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return
+    reloading = true
+    window.location.reload()
+  })
 }

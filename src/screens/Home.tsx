@@ -32,6 +32,7 @@ export default function Home() {
     pendingReRunFood,
     pendingReRunReview,
     homeState,
+    secondaryReRunFood,
     foodsReviewed,
     reviewerName,
     go,
@@ -142,6 +143,14 @@ export default function Home() {
                   Look at your card
                 </Button>
               </div>
+              {/* Offered under the finished mission, not in place of it. */}
+              {secondaryReRunFood ? (
+                <div className="mt-1">
+                  <Button variant="quiet" onClick={() => go('secondOpinion')}>
+                    Take another look at {secondaryReRunFood.name.toLowerCase()}
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : (
             <>

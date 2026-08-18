@@ -48,15 +48,6 @@ export const monthLabel = (iso: string): string =>
 export const monthName = (iso: string): string =>
   new Date(iso).toLocaleDateString('en-GB', { month: 'long' })
 
-export const isToday = (iso: string): boolean => {
-  const d = new Date(iso)
-  const now = new Date()
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  )
-}
 
 /**
  * Four reviews already in the deck on first run, plus two foods that carry

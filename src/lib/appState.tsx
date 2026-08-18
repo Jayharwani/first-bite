@@ -17,7 +17,6 @@ import {
   foodsReviewedCount,
   pendingReRunFoodId,
   reviewsFor,
-  isToday,
 } from './storage'
 
 export type Draft = {
@@ -46,6 +45,8 @@ type Ctx = {
   pendingReRunReview: Review | undefined
   /** What the Today card shows. One source of truth for Home and the FAB. */
   homeState: 'reRun' | 'done' | 'drop'
+  /** A re-run offered alongside a finished mission, rather than instead of it. */
+  secondaryReRunFood: ReturnType<typeof foodById>
   foodsReviewed: number
   go: (s: ScreenName) => void
   shuffle: () => void
@@ -92,17 +93,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const pendingReRunReview = latestReviewFor(state, reRunId)
 
   /**
-   * A mission finished today keeps the Today card for the rest of the day.
-   * A second opinion is allowed to replace the weekly *offer*, but not to
-   * wipe work the kid has just done — that reads as the mission resetting.
+   * A second opinion replaces the weekly *offer*, never a finished mission.
+   *
+   * The spec gives the re-run priority over the drop, and a drop is something
+   * not yet reviewed. Once this week's food has a review, that result stays on
+   * the card and the re-run is offered underneath it instead — a completed
+   * mission vanishing from Today reads as the app forgetting what you did.
    */
-  const completedToday = Boolean(currentReview && isToday(currentReview.createdAt))
-  const homeState: 'reRun' | 'done' | 'drop' =
-    !completedToday && pendingReRunFood && pendingReRunReview
+  const hasReRun = Boolean(pendingReRunFood && pendingReRunReview)
+  const homeState: 'reRun' | 'done' | 'drop' = currentReview
+    ? 'done'
+    : hasReRun
       ? 'reRun'
-      : currentReview
-        ? 'done'
-        : 'drop'
+      : 'drop'
+  const secondaryReRunFood = currentReview && hasReRun ? pendingReRunFood : undefined
 
   const go = useCallback((s: ScreenName) => setScreen(s), [])
 
@@ -198,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pendingReRunFood,
       pendingReRunReview,
       homeState,
+      secondaryReRunFood,
       foodsReviewed: foodsReviewedCount(state),
       go,
       shuffle,
@@ -221,6 +226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pendingReRunFood,
       pendingReRunReview,
       homeState,
+      secondaryReRunFood,
       go,
       shuffle,
       startTrial,

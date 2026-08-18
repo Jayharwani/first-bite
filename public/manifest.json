@@ -1,0 +1,16 @@
+{
+  "name": "First Bite",
+  "short_name": "First Bite",
+  "description": "One new food a week. You don't have to like it. You just have to review it.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#8FC96B",
+  "background_color": "#FAFAF7",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

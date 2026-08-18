@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light only;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    margin: 0;
+    /* Prevent the 300ms tap delay without disabling pinch zoom. */
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
+  }
+
+  /* Tabular figures on anything that counts, times or dates, so numbers
+     never shift horizontally as they change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One focus treatment for the whole app: a 2px sprout.deep ring at 2px
+     offset. Applied on :focus-visible only so it never fires on tap. */
+  :focus-visible {
+    outline: 2px solid theme('colors.sprout.deep');
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* The phone shell. Locked to 430px so the layout reads as a device on
+     desktop; the frame itself only appears above 600px. */
+  .app-shell {
+    @apply relative mx-auto flex w-full max-w-app flex-col bg-canvas;
+    min-height: 100dvh;
+  }
+
+  @media (min-width: 600px) {
+    .app-frame {
+      @apply flex min-h-[100dvh] items-center justify-center bg-canvas p-6;
+    }
+
+    .app-shell {
+      height: min(920px, calc(100dvh - 48px));
+      min-height: 0;
+      border-radius: 44px;
+      border: 8px solid theme('colors.ink');
+      box-shadow: theme('boxShadow.lift');
+      overflow: hidden;
+    }
+  }
+
+  /* Bottom action rows clear the home indicator on iOS. */
+  .safe-bottom {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+}
+
+/* Reduced motion is handled in JS by swapping every spring for a zero
+   duration transition, but stop CSS-driven motion here too. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

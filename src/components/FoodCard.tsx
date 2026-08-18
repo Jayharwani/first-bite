@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion'
 import { Star } from 'lucide-react'
-import { forwardRef } from 'react'
-import type { Food, Review } from '../types'
+import { forwardRef, useMemo, type KeyboardEvent } from 'react'
+import type { Food, FoodHistory, PeerStats, Review } from '../types'
 import { VERDICT } from './StarRating'
+import CardBack from './CardBack'
 import { useSprings } from '../lib/motion'
 
 const WASH: Record<Food['colorWash'], string> = {
@@ -12,6 +13,9 @@ const WASH: Record<Food['colorWash'], string> = {
   clay: '#F6DDDA',
 }
 
+const SHADOW_REST = '0 8px 32px rgba(20, 25, 20, 0.10)'
+const SHADOW_MID = '0 16px 48px rgba(20, 25, 20, 0.18)'
+
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
 
@@ -19,26 +23,50 @@ type Props = {
   food: Food
   review: Review
   reviewerName: string
-  /** 1 = the full 260x360 collectible. The deck renders at 0.55. */
+  /** 1 = the full 260x360 collectible. The deck grid renders at 0.55. */
   scale?: number
   layoutId?: string
   /** The one-shot diagonal sheen. Mint only, never in the deck. */
   sheen?: boolean
   /** Stagger the contents in. Mint only. */
   stagger?: boolean
+  /** Passing a toggle makes the card flippable and interactive. */
+  flipped?: boolean
+  onFlipToggle?: () => void
+  history?: FoodHistory
+  stats?: PeerStats
 }
 
 /**
- * Sized from a scale factor rather than a CSS transform, so the deck's
- * smaller cards stay crisp and Framer's shared-layout transition has a real
- * box to interpolate between.
+ * Sized from a scale factor rather than a CSS transform, so smaller cards
+ * stay crisp and Framer's shared-layout transition has a real box to
+ * interpolate between.
+ *
+ * The flip is split across two elements on purpose: layoutId sits on the
+ * outer container, where Framer owns the transform, and rotateY sits on the
+ * inner one, which this component owns. Putting both on a single node means
+ * whichever writes `transform` last wins, and the deck-to-fullscreen
+ * transition loses.
  */
 const FoodCard = forwardRef<HTMLDivElement, Props>(function FoodCard(
-  { food, review, reviewerName, scale = 1, layoutId, sheen = false, stagger = false },
+  {
+    food,
+    review,
+    reviewerName,
+    scale = 1,
+    layoutId,
+    sheen = false,
+    stagger = false,
+    flipped = false,
+    onFlipToggle,
+    history,
+    stats,
+  },
   ref,
 ) {
   const { bloom, soft, reduced } = useSprings()
   const s = (n: number) => `${n * scale}px`
+  const flippable = Boolean(onFlipToggle && history)
 
   const item = (i: number) =>
     stagger && !reduced
@@ -49,34 +77,64 @@ const FoodCard = forwardRef<HTMLDivElement, Props>(function FoodCard(
         }
       : {}
 
-  return (
+  /**
+   * Memoised because the tilt is expressed as keyframes: a fresh array on
+   * every render would replay the flourish whenever anything re-renders.
+   */
+  const flipAnimation = useMemo(() => {
+    if (reduced) return { animate: {}, transition: {} }
+    return {
+      animate: {
+        rotateY: flipped ? 180 : 0,
+        // A flat spin reads like a CSS demo. The slight roll and lift through
+        // the midpoint is what makes it a hand turning a card over.
+        rotateZ: [0, -6, 0],
+        scale: [1, 1.04, 1],
+      },
+      transition: {
+        rotateY: soft,
+        rotateZ: { duration: 0.5, times: [0, 0.5, 1], ease: 'easeInOut' as const },
+        scale: { duration: 0.5, times: [0, 0.5, 1], ease: 'easeInOut' as const },
+      },
+    }
+  }, [flipped, reduced, soft])
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!onFlipToggle) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onFlipToggle()
+    }
+  }
+
+  const front = (
     <motion.div
       ref={ref}
-      layoutId={layoutId}
-      transition={bloom}
-      className="relative flex shrink-0 flex-col overflow-hidden"
+      className="relative flex flex-col overflow-hidden"
       style={{
         width: s(260),
         height: s(360),
         borderRadius: s(24),
         backgroundColor: WASH[food.colorWash],
-        boxShadow: '0 8px 32px rgba(20, 25, 20, 0.10)',
         padding: s(20),
+        backfaceVisibility: reduced ? 'visible' : 'hidden',
+        WebkitBackfaceVisibility: reduced ? 'visible' : 'hidden',
       }}
+      // Correct from the first paint rather than after one frame: this card
+      // can mount already flipped, and a crossfade that has not run yet would
+      // otherwise show the wrong face.
+      initial={reduced ? { opacity: flipped ? 0 : 1 } : undefined}
+      animate={reduced ? { opacity: flipped ? 0 : 1 } : undefined}
+      transition={reduced ? { duration: 0.2 } : undefined}
     >
-      {/* Inset frame — 1px white at 40%, the thing that makes it read as a card
-          rather than a tile. */}
+      {/* Inset frame — 1px white at 40%, the thing that makes it read as a
+          card rather than a tile. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute"
-        style={{
-          inset: s(8),
-          borderRadius: s(17),
-          border: `1px solid rgba(255,255,255,0.4)`,
-        }}
+        style={{ inset: s(8), borderRadius: s(17), border: '1px solid rgba(255,255,255,0.4)' }}
       />
 
-      {/* Art */}
       <motion.div
         {...item(0)}
         className="flex flex-1 items-center justify-center"
@@ -87,7 +145,6 @@ const FoodCard = forwardRef<HTMLDivElement, Props>(function FoodCard(
         </span>
       </motion.div>
 
-      {/* Name */}
       <motion.h3
         {...item(1)}
         className="text-center font-extrabold text-ink"
@@ -137,7 +194,7 @@ const FoodCard = forwardRef<HTMLDivElement, Props>(function FoodCard(
             WebkitBoxOrient: 'vertical',
           }}
         >
-          “{review.note}”
+          &ldquo;{review.note}&rdquo;
         </motion.p>
       ) : null}
 
@@ -171,6 +228,91 @@ const FoodCard = forwardRef<HTMLDivElement, Props>(function FoodCard(
           }}
         />
       ) : null}
+    </motion.div>
+  )
+
+  if (!flippable) {
+    return (
+      <motion.div
+        layoutId={layoutId}
+        transition={bloom}
+        className="shrink-0"
+        style={{ borderRadius: s(24), boxShadow: SHADOW_REST }}
+      >
+        {front}
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      layoutId={layoutId}
+      role="button"
+      tabIndex={0}
+      aria-pressed={flipped}
+      aria-label={
+        flipped
+          ? `${food.name} card, showing your history. Tap to see the front.`
+          : `${food.name} card. Tap to see your history.`
+      }
+      onClick={onFlipToggle}
+      onKeyDown={onKeyDown}
+      className="relative shrink-0 cursor-pointer"
+      style={{ borderRadius: s(24), perspective: 1200 }}
+      animate={reduced ? undefined : { boxShadow: [SHADOW_REST, SHADOW_MID, SHADOW_REST] }}
+      // bloom drives the shared-layout transition; boxShadow overrides it so
+      // the lift is keyframed rather than sprung.
+      transition={
+        reduced
+          ? bloom
+          : { ...bloom, boxShadow: { duration: 0.5, times: [0, 0.5, 1], ease: 'easeInOut' } }
+      }
+    >
+      {/* The entire affordance: 3px of the back sheet showing past the right
+          edge. No icon, no chevron, no "tap to see more". */}
+      {!flipped && !reduced ? (
+        <div
+          aria-hidden="true"
+          className="absolute"
+          style={{
+            top: s(10),
+            bottom: s(10),
+            right: s(-3),
+            width: s(14),
+            borderTopRightRadius: s(10),
+            borderBottomRightRadius: s(10),
+            backgroundColor: WASH[food.colorWash],
+            filter: 'brightness(0.93)',
+          }}
+        />
+      ) : null}
+
+      <motion.div
+        className="relative"
+        style={{ transformStyle: reduced ? 'flat' : 'preserve-3d' }}
+        initial={false}
+        animate={flipAnimation.animate}
+        transition={flipAnimation.transition}
+      >
+        {front}
+
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            backfaceVisibility: reduced ? 'visible' : 'hidden',
+            WebkitBackfaceVisibility: reduced ? 'visible' : 'hidden',
+            // Under reduced motion nothing rotates, so the back must not be
+            // pre-flipped or it would crossfade in mirrored.
+            transform: reduced ? undefined : 'rotateY(180deg)',
+            pointerEvents: 'none',
+          }}
+          initial={reduced ? { opacity: flipped ? 1 : 0 } : undefined}
+          animate={reduced ? { opacity: flipped ? 1 : 0 } : undefined}
+          transition={reduced ? { duration: 0.2 } : undefined}
+        >
+          <CardBack food={food} history={history!} stats={stats} scale={scale} />
+        </motion.div>
+      </motion.div>
     </motion.div>
   )
 })

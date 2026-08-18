@@ -32,10 +32,36 @@ First Bite deletes the fail state. A one-star review earns exactly the same cred
 | **Review** | Five stars, a texture-first tag vocabulary, an optional note. Publish unlocks on the star alone |
 | **Mint** | The collectible card blooms in, its contents stagger, and a single sheen passes across it once |
 | **Deck** | The collection as a chronological record. Tap any card to open it full size and share it — not just the one just made. No sorting by rating, no favourites, no aggregate score |
+| **Card back** | Tap a full-size card to turn it over: the kid's own rating history, and what other kids said about that food |
+| **Second opinion** | A food they rated one or two stars comes back later as a rematch, history first, with a decline that costs nothing |
 
 Sharing exports the card to PNG at 2x and hands it to the OS share sheet, falling back to a download where the Web Share API cannot take files. The export targets the card node itself rather than its animated wrapper, so it is always full size regardless of what the open transition is doing.
 
 Bailing out is recorded honestly: the review stores `stepsCompleted` and `bailedAt`, and still mints a full card.
+
+## The card back
+
+Research says it takes ten to fifteen exposures before a child accepts a new food. A single review is one. The back of the card closes that gap.
+
+**The front is what you thought. The back is what you used to think, and what everyone else thinks.**
+
+Turning a card over shows a strip of the kid's own ratings over time — radish went one star in March, two in April, four in June. A rise is marked by colouring one connector green and by nothing else. There is no arrow, no label, and no copy anywhere that congratulates them on it. The record states what happened; the kid draws the conclusion. Writing that conclusion for them would take the moment away.
+
+Underneath sits what other kids said about that food.
+
+### The guardrail
+
+**We show kids what other kids said about the food. We never show them what other kids did.** In a weight-management product for children, comparing them to each other is the one thing you cannot build.
+
+So peer data is opinions about a food, never behaviour by a person. No review counts per child, no streak comparisons, no leaderboards, no names. The constraint lives in the shape of `PeerStats` rather than in a review checklist — there is no field there that could be arranged into a ranking of children.
+
+It is also always anonymous, always aggregate, and never shown below a sample of ten. Under that threshold the block is absent outright: no placeholder, no "not enough data yet". Seaweed in the seed data has four reviewers, so opening its card shows history and nothing else. A small sample dressed up as a finding is worse than silence.
+
+### The re-run
+
+A food rated one or two stars comes back later as a second opinion. The card appears first, already turned to its history, and the ask comes second — the kid should be looking at their own record before anyone suggests revisiting it.
+
+Declining costs nothing. It breaks no streak, removes no card, and produces no response at all: no toast, no "no problem", no counter-offer. Because the button says "Not this week", a decline also silences *every* re-run for a week, not just that food — otherwise turning one down would immediately surface another, which is nagging wearing a feature's clothes.
 
 ## Stack
 

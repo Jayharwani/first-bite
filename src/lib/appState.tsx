@@ -8,7 +8,16 @@ import {
 } from 'react'
 import type { AppState, Review, ScreenName, Stars, TrialStep } from '../types'
 import { FOODS, foodById } from '../data/foods'
-import { load, save, reset as clearStorage, REVIEWER_NAME } from './storage'
+import {
+  load,
+  save,
+  reset as clearStorage,
+  REVIEWER_NAME,
+  latestReviewFor,
+  foodsReviewedCount,
+  pendingReRunFoodId,
+  reviewsFor,
+} from './storage'
 
 export type Draft = {
   stars: Stars | null
@@ -25,13 +34,21 @@ type Ctx = {
   screen: ScreenName
   draft: Draft
   reviewerName: string
+  /** This week's drop. */
   currentFood: ReturnType<typeof foodById>
+  /** The food a trial is actually running on — a re-run overrides the drop. */
+  activeFood: ReturnType<typeof foodById>
   currentReview: Review | undefined
-  /** The card Mint should show. */
   mintReview: Review | undefined
+  /** The food being offered a second opinion, if any. */
+  pendingReRunFood: ReturnType<typeof foodById>
+  pendingReRunReview: Review | undefined
+  foodsReviewed: number
   go: (s: ScreenName) => void
   shuffle: () => void
   startTrial: () => void
+  startReRun: () => void
+  declineReRun: () => void
   finishTrial: (stepsCompleted: TrialStep[], bailedAt?: TrialStep) => void
   setDraft: (patch: Partial<Draft>) => void
   toggleTag: (id: string) => void
@@ -42,8 +59,6 @@ type Ctx = {
 const AppCtx = createContext<Ctx | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // `?reset=1` wipes storage before the first read. Lets anyone replay the
-  // whole flow from a shared link without a settings screen.
   const [state, setStateRaw] = useState<AppState>(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(location.search).has('reset')) {
       clearStorage()
@@ -54,6 +69,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [screen, setScreen] = useState<ScreenName>('home')
   const [draft, setDraftRaw] = useState<Draft>(emptyDraft)
   const [mintFoodId, setMintFoodId] = useState<string | null>(null)
+  // Not persisted: a re-run is a property of this session, not of the save.
+  const [reRunFoodId, setReRunFoodId] = useState<string | null>(null)
 
   const commit = useCallback((next: AppState) => {
     const withCount = { ...next, exploredCount: next.reviews.length }
@@ -62,8 +79,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const currentFood = foodById(state.currentFoodId)
-  const currentReview = state.reviews.find((r) => r.foodId === state.currentFoodId)
-  const mintReview = state.reviews.find((r) => r.foodId === mintFoodId)
+  const activeFoodId = reRunFoodId ?? state.currentFoodId
+  const activeFood = foodById(activeFoodId)
+  const currentReview = latestReviewFor(state, state.currentFoodId)
+  const mintReview = latestReviewFor(state, mintFoodId)
+
+  const reRunId = pendingReRunFoodId(state)
+  const pendingReRunFood = foodById(reRunId)
+  const pendingReRunReview = latestReviewFor(state, reRunId)
 
   const go = useCallback((s: ScreenName) => setScreen(s), [])
 
@@ -72,15 +95,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const reviewed = new Set(state.reviews.map((r) => r.foodId))
     const options = FOODS.filter((f) => !reviewed.has(f.id) && f.id !== state.currentFoodId)
     if (options.length === 0) return
-    // Deterministic enough for a demo and avoids repeating the same food.
     const next = options[Math.floor(Math.random() * options.length)]
     commit({ ...state, currentFoodId: next.id, shuffleUsed: true })
   }, [state, commit])
 
   const startTrial = useCallback(() => {
+    setReRunFoodId(null)
     setDraftRaw(emptyDraft())
     setScreen('trial')
   }, [])
+
+  /** Straight to the trial. The kid already knows what the food is. */
+  const startReRun = useCallback(() => {
+    if (!reRunId) return
+    setReRunFoodId(reRunId)
+    setDraftRaw(emptyDraft())
+    setScreen('trial')
+  }, [reRunId])
+
+  /**
+   * Logged, and then nothing. No toast, no counter-offer, no consequence.
+   * The silence is the feature.
+   */
+  const declineReRun = useCallback(() => {
+    if (!reRunId) return
+    commit({
+      ...state,
+      declinedReRuns: [...state.declinedReRuns, { foodId: reRunId, at: new Date().toISOString() }],
+    })
+    setScreen('home')
+  }, [reRunId, state, commit])
 
   const finishTrial = useCallback((stepsCompleted: TrialStep[], bailedAt?: TrialStep) => {
     setDraftRaw((d) => ({ ...d, stepsCompleted, bailedAt }))
@@ -91,9 +135,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDraftRaw((d) => ({ ...d, ...patch }))
   }, [])
 
-  // Derived from the previous draft inside the updater, never from a value
-  // captured at render. Two chips tapped in the same frame would otherwise
-  // both read an empty list and the second would erase the first.
+  // Derived inside the updater, never from a value captured at render. Two
+  // chips tapped in the same frame would otherwise both read an empty list.
   const toggleTag = useCallback((id: string) => {
     setDraftRaw((d) => ({
       ...d,
@@ -102,9 +145,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const publish = useCallback(() => {
-    if (!state.currentFoodId || draft.stars === null) return
+    if (!activeFoodId || draft.stars === null) return
+    const previous = reviewsFor(state, activeFoodId)
     const review: Review = {
-      foodId: state.currentFoodId,
+      foodId: activeFoodId,
+      // Appended, never replacing. The earlier runs are the whole point.
+      runNumber: previous.length + 1,
       stars: draft.stars,
       tags: draft.tags,
       note: draft.note.trim() ? draft.note.trim() : undefined,
@@ -112,11 +158,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       bailedAt: draft.bailedAt,
       createdAt: new Date().toISOString(),
     }
-    const reviews = [...state.reviews.filter((r) => r.foodId !== review.foodId), review]
-    setMintFoodId(review.foodId)
-    commit({ ...state, reviews })
+    setMintFoodId(activeFoodId)
+    setReRunFoodId(null)
+    commit({ ...state, reviews: [...state.reviews, review] })
     setScreen('mint')
-  }, [state, draft, commit])
+  }, [state, draft, activeFoodId, commit])
 
   const openExistingCard = useCallback(() => {
     setMintFoodId(state.currentFoodId)
@@ -130,11 +176,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       draft,
       reviewerName: REVIEWER_NAME,
       currentFood,
+      activeFood,
       currentReview,
       mintReview,
+      pendingReRunFood,
+      pendingReRunReview,
+      foodsReviewed: foodsReviewedCount(state),
       go,
       shuffle,
       startTrial,
+      startReRun,
+      declineReRun,
       finishTrial,
       setDraft,
       toggleTag,
@@ -146,11 +198,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       screen,
       draft,
       currentFood,
+      activeFood,
       currentReview,
       mintReview,
+      pendingReRunFood,
+      pendingReRunReview,
       go,
       shuffle,
       startTrial,
+      startReRun,
+      declineReRun,
       finishTrial,
       setDraft,
       toggleTag,

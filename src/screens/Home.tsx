@@ -2,10 +2,20 @@ import { motion } from 'framer-motion'
 import { Sprout, Check, ArrowRight } from 'lucide-react'
 import Screen from '../components/Screen'
 import Button from '../components/Button'
+import { STAR_WORD } from '../components/StarRating'
 import { useApp } from '../lib/appState'
 import { useSprings } from '../lib/motion'
+import { monthName } from '../lib/storage'
+import type { Food } from '../types'
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU']
+
+const WASH_CLASS: Record<Food['colorWash'], string> = {
+  green: 'bg-wash-green',
+  yellow: 'bg-wash-yellow',
+  blue: 'bg-wash-blue',
+  clay: 'bg-wash-clay',
+}
 
 const today = () =>
   new Date().toLocaleDateString('en-GB', {
@@ -16,10 +26,23 @@ const today = () =>
   })
 
 export default function Home() {
-  const { state, currentFood, currentReview, reviewerName, go, openExistingCard } = useApp()
+  const {
+    currentFood,
+    currentReview,
+    pendingReRunFood,
+    pendingReRunReview,
+    foodsReviewed,
+    reviewerName,
+    go,
+    declineReRun,
+    openExistingCard,
+  } = useApp()
   const { tap, snap } = useSprings()
 
   if (!currentFood) return null
+
+  // A food waiting on a second opinion outranks this week's drop.
+  const reRun = pendingReRunFood && pendingReRunReview ? pendingReRunFood : null
 
   return (
     <Screen className="overflow-y-auto">
@@ -61,18 +84,41 @@ export default function Home() {
         <h2 className="mt-7 text-title text-ink">Today&rsquo;s missions</h2>
 
         {/* ---- First Bite entry card ---- */}
-        <section className="mt-4 rounded-card bg-wash-green p-5 shadow-card">
+        <section
+          className={[
+            'mt-4 rounded-card p-5 shadow-card',
+            // Wearing the returning food's own colour makes the ask feel
+            // specific to that food rather than generic.
+            reRun ? WASH_CLASS[reRun.colorWash] : 'bg-wash-green',
+          ].join(' ')}
+        >
           <div className="flex items-center gap-1.5">
             <Sprout size={14} className="text-sprout-deep" aria-hidden="true" />
             <span
               className="text-caption font-semibold text-sprout-deep"
               style={{ letterSpacing: '0.08em' }}
             >
-              FIRST BITE
+              {reRun ? 'SECOND OPINION' : 'FIRST BITE'}
             </span>
           </div>
 
-          {currentReview ? (
+          {reRun && pendingReRunReview ? (
+            <>
+              <h3 className="mt-2 text-title text-ink">{reRun.name}, again</h3>
+              <p className="mt-2 text-body text-slate">
+                You gave it {STAR_WORD[pendingReRunReview.stars]} in{' '}
+                {monthName(pendingReRunReview.createdAt)}.
+              </p>
+              <div className="mt-4">
+                <Button onClick={() => go('secondOpinion')}>Take another look</Button>
+              </div>
+              <div className="mt-1">
+                <Button variant="quiet" onClick={declineReRun}>
+                  Not this week
+                </Button>
+              </div>
+            </>
+          ) : currentReview ? (
             <>
               <div className="mt-3 flex items-center gap-3">
                 <span
@@ -111,7 +157,7 @@ export default function Home() {
               under the AA floor this feature is held to. */}
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="tnum text-caption text-slate">
-              {state.exploredCount} {state.exploredCount === 1 ? 'food' : 'foods'} reviewed
+              {foodsReviewed} {foodsReviewed === 1 ? 'food' : 'foods'} reviewed
             </p>
             <motion.button
               type="button"

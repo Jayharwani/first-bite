@@ -5,6 +5,8 @@ import Screen from '../components/Screen'
 import FoodCard from '../components/FoodCard'
 import ShareButton from '../components/ShareButton'
 import { foodById, DECK_TARGET } from '../data/foods'
+import { peerStatsFor } from '../data/peerStats'
+import { historyFor, latestReviews } from '../lib/storage'
 import { useApp } from '../lib/appState'
 import { useSprings } from '../lib/motion'
 import type { Review } from '../types'
@@ -13,18 +15,18 @@ const SCALE = 0.55
 
 export default function Deck() {
   const { state, reviewerName, go } = useApp()
-  const { bloom, soft, tap, snap, reduced } = useSprings()
+  const { soft, tap, snap, reduced } = useSprings()
   const [open, setOpen] = useState<Review | null>(null)
+  const [flipped, setFlipped] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
 
-  // Chronological. The deck is a record of what happened, so it is never
-  // sorted by rating and never scored.
-  const reviews = [...state.reviews].sort(
-    (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt),
-  )
+  // One card per food, showing its most recent run — the earlier runs live on
+  // the back rather than as duplicate cards. Chronological, because the deck
+  // is a record of what happened; never sorted by rating and never scored.
+  const reviews = latestReviews(state)
   const emptySlots = Math.max(0, DECK_TARGET - reviews.length)
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export default function Deck() {
                   type="button"
                   onClick={(e) => {
                     returnFocusRef.current = e.currentTarget
+                    setFlipped(false)
                     setOpen(r)
                   }}
                   whileTap={tap}
@@ -151,9 +154,19 @@ export default function Deck() {
               onClick={() => setOpen(null)}
               className="absolute inset-0 cursor-pointer bg-ink/50"
             />
-            <motion.div layoutId={`card-${open.foodId}`} transition={bloom} className="relative">
-              <FoodCard ref={cardRef} food={openFood} review={open} reviewerName={reviewerName} />
-            </motion.div>
+            <div className="relative">
+              <FoodCard
+                ref={cardRef}
+                layoutId={`card-${open.foodId}`}
+                food={openFood}
+                review={open}
+                reviewerName={reviewerName}
+                flipped={flipped}
+                onFlipToggle={() => setFlipped((f) => !f)}
+                history={historyFor(state, open.foodId)}
+                stats={peerStatsFor(open.foodId)}
+              />
+            </div>
 
             {/* Any card in the deck can be shared, not only the one just made. */}
             <div className="relative w-full max-w-[260px] shrink-0">

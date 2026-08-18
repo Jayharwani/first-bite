@@ -32,11 +32,11 @@ const COPY: Record<TrialStep, { verb: string; instruction: string; exit: string 
 }
 
 export default function Trial() {
-  const { currentFood, go, finishTrial } = useApp()
+  const { activeFood, go, finishTrial } = useApp()
   const { soft, tap, snap, reduced } = useSprings()
   const [i, setI] = useState(0)
 
-  if (!currentFood) return null
+  if (!activeFood) return null
 
   const step = TRIAL_STEPS[i]
   const copy = COPY[step]
@@ -85,10 +85,10 @@ export default function Trial() {
             </p>
             <span
               role="img"
-              aria-label={currentFood.name}
+              aria-label={activeFood.name}
               className="mt-8 text-[64px] leading-none opacity-90"
             >
-              {currentFood.emoji}
+              {activeFood.emoji}
             </span>
           </motion.div>
         </AnimatePresence>

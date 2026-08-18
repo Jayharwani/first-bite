@@ -6,6 +6,7 @@ import Trial from './screens/Trial'
 import ReviewScreen from './screens/Review'
 import Mint from './screens/Mint'
 import Deck from './screens/Deck'
+import SecondOpinion from './screens/SecondOpinion'
 import { useApp } from './lib/appState'
 import { useSprings } from './lib/motion'
 
@@ -23,6 +24,7 @@ export default function App() {
     review: <ReviewScreen />,
     mint: <Mint />,
     deck: <Deck />,
+    secondOpinion: <SecondOpinion />,
   } as const
 
   // The centre button resumes rather than restarts once a review exists.

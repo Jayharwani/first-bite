@@ -41,6 +41,24 @@ export const FOODS: Food[] = [
     hook: "The vinegar wasn't about flavour. It was how you kept an onion through winter.",
   },
   {
+    id: 'radish',
+    name: 'Radish',
+    // Unicode has no radish. The hot pepper is the closest red produce glyph
+    // and its heat reads correctly against this food's reviews.
+    emoji: '\u{1F336}\u{FE0F}',
+    category: 'vegetable',
+    colorWash: 'clay',
+    hook: "It's related to mustard. That's why it bites.",
+  },
+  {
+    id: 'cucumber',
+    name: 'Cucumber',
+    emoji: '\u{1F952}',
+    category: 'vegetable',
+    colorWash: 'green',
+    hook: 'Left in salt overnight it collapses into a pickle. Same vegetable, different food.',
+  },
+  {
     id: 'olive',
     name: 'Olive',
     emoji: '\u{1FAD2}',
@@ -110,4 +128,4 @@ export const foodById = (id: string | null | undefined): Food | undefined =>
   FOODS.find((f) => f.id === id)
 
 /** How many slots the deck shows. Drives the dashed empty slots. */
-export const DECK_TARGET = 8
+export const DECK_TARGET = 10

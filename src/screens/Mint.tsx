@@ -1,10 +1,12 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Screen from '../components/Screen'
 import Button from '../components/Button'
 import FoodCard from '../components/FoodCard'
 import ShareButton from '../components/ShareButton'
 import { foodById } from '../data/foods'
+import { peerStatsFor } from '../data/peerStats'
+import { historyFor, latestReviews } from '../lib/storage'
 import { useApp } from '../lib/appState'
 import { useSprings } from '../lib/motion'
 import type { Food } from '../types'
@@ -20,11 +22,13 @@ export default function Mint() {
   const { state, mintReview, reviewerName, go } = useApp()
   const { bloom, soft, reduced } = useSprings()
   const cardRef = useRef<HTMLDivElement>(null)
+  const [flipped, setFlipped] = useState(false)
 
   const food = foodById(mintReview?.foodId)
   if (!mintReview || !food) return null
 
-  const position = state.reviews.findIndex((r) => r.foodId === mintReview.foodId) + 1
+  // Position among foods, not among runs — a re-run does not add a card.
+  const position = latestReviews(state).findIndex((r) => r.foodId === mintReview.foodId) + 1
 
   return (
     <Screen>
@@ -51,6 +55,10 @@ export default function Mint() {
             reviewerName={reviewerName}
             stagger
             sheen
+            flipped={flipped}
+            onFlipToggle={() => setFlipped((f) => !f)}
+            history={historyFor(state, food.id)}
+            stats={peerStatsFor(food.id)}
           />
         </motion.div>
       </div>

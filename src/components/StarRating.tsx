@@ -11,6 +11,15 @@ export const VERDICT: Record<Stars, string> = {
   5: 'Bring it back',
 }
 
+/** Spelled out, because prose reads better than a digit mid-sentence. */
+export const STAR_WORD: Record<Stars, string> = {
+  1: 'one star',
+  2: 'two stars',
+  3: 'three stars',
+  4: 'four stars',
+  5: 'five stars',
+}
+
 const VALUES: Stars[] = [1, 2, 3, 4, 5]
 
 export default function StarRating({

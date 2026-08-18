@@ -10,10 +10,10 @@ import { useSprings } from '../lib/motion'
 const NOTE_MAX = 140
 
 export default function Review() {
-  const { currentFood, draft, setDraft, toggleTag, publish } = useApp()
+  const { activeFood, draft, setDraft, toggleTag, publish } = useApp()
   const { soft, reduced } = useSprings()
 
-  if (!currentFood) return null
+  if (!activeFood) return null
 
   return (
     <Screen>
@@ -22,9 +22,9 @@ export default function Review() {
           <h1 className="text-title text-ink">Your review</h1>
           <p className="mt-1 text-body text-slate">
             <span role="img" aria-hidden="true" className="mr-1">
-              {currentFood.emoji}
+              {activeFood.emoji}
             </span>
-            {currentFood.name}
+            {activeFood.name}
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function Review() {
 
         <div className="mt-7">
           <label htmlFor="note" className="sr-only">
-            Anything else about {currentFood.name}? Optional, up to {NOTE_MAX} characters.
+            Anything else about {activeFood.name}? Optional, up to {NOTE_MAX} characters.
           </label>
           <textarea
             id="note"

@@ -31,7 +31,9 @@ First Bite deletes the fail state. A one-star review earns exactly the same cred
 | **Trial** | Four sensory steps — look, smell, touch, taste — each with an exit that is the same size and weight as the primary button |
 | **Review** | Five stars, a texture-first tag vocabulary, an optional note. Publish unlocks on the star alone |
 | **Mint** | The collectible card blooms in, its contents stagger, and a single sheen passes across it once |
-| **Deck** | The collection as a chronological record. No sorting by rating, no favourites, no aggregate score |
+| **Deck** | The collection as a chronological record. Tap any card to open it full size and share it — not just the one just made. No sorting by rating, no favourites, no aggregate score |
+
+Sharing exports the card to PNG at 2x and hands it to the OS share sheet, falling back to a download where the Web Share API cannot take files. The export targets the card node itself rather than its animated wrapper, so it is always full size regardless of what the open transition is doing.
 
 Bailing out is recorded honestly: the review stores `stepsCompleted` and `bailedAt`, and still mints a full card.
 

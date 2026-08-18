@@ -1,12 +1,12 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import Screen from '../components/Screen'
 import Button from '../components/Button'
 import FoodCard from '../components/FoodCard'
+import ShareButton from '../components/ShareButton'
 import { foodById } from '../data/foods'
 import { useApp } from '../lib/appState'
 import { useSprings } from '../lib/motion'
-import { shareCard } from '../lib/cardImage'
 import type { Food } from '../types'
 
 const WASH: Record<Food['colorWash'], string> = {
@@ -20,28 +20,11 @@ export default function Mint() {
   const { state, mintReview, reviewerName, go } = useApp()
   const { bloom, soft, reduced } = useSprings()
   const cardRef = useRef<HTMLDivElement>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
 
   const food = foodById(mintReview?.foodId)
   if (!mintReview || !food) return null
 
   const position = state.reviews.findIndex((r) => r.foodId === mintReview.foodId) + 1
-
-  const onShare = async () => {
-    if (!cardRef.current || busy) return
-    setBusy(true)
-    setStatus(null)
-    const result = await shareCard(cardRef.current, `first-bite-${food.id}.png`)
-    setBusy(false)
-    setStatus(
-      result === 'shared'
-        ? 'Shared.'
-        : result === 'downloaded'
-          ? 'Saved to your downloads.'
-          : 'Could not save the card. Try again.',
-    )
-  }
 
   return (
     <Screen>
@@ -81,17 +64,12 @@ export default function Mint() {
         <p className="tnum text-center text-caption text-mist">
           Card {position} of your deck
         </p>
-        <div className="mt-4 flex flex-col gap-3">
-          <Button onClick={onShare} disabled={busy}>
-            {busy ? 'Preparing…' : 'Share my review'}
-          </Button>
-          <Button variant="ghost" onClick={() => go('home')}>
-            Back to today
-          </Button>
+        <div className="mt-4">
+          <ShareButton targetRef={cardRef} foodId={food.id} />
         </div>
-        <p className="mt-2 min-h-[16px] text-center text-caption text-slate" aria-live="polite">
-          {status}
-        </p>
+        <Button variant="ghost" onClick={() => go('home')}>
+          Back to today
+        </Button>
       </motion.div>
     </Screen>
   )

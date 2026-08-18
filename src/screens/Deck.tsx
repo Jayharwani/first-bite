@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, X } from 'lucide-react'
 import Screen from '../components/Screen'
 import FoodCard from '../components/FoodCard'
+import ShareButton from '../components/ShareButton'
 import { foodById, DECK_TARGET } from '../data/foods'
 import { useApp } from '../lib/appState'
 import { useSprings } from '../lib/motion'
@@ -15,6 +16,8 @@ export default function Deck() {
   const { bloom, soft, tap, snap, reduced } = useSprings()
   const [open, setOpen] = useState<Review | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
 
   // Chronological. The deck is a record of what happened, so it is never
@@ -33,7 +36,25 @@ export default function Deck() {
     }
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(null)
+      if (e.key === 'Escape') {
+        setOpen(null)
+        return
+      }
+      // aria-modal claims focus stays inside, so make that true.
+      if (e.key !== 'Tab' || !dialogRef.current) return
+      const focusable = [
+        ...dialogRef.current.querySelectorAll<HTMLElement>('button:not([tabindex="-1"])'),
+      ].filter((el) => !el.hasAttribute('disabled'))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -110,7 +131,8 @@ export default function Deck() {
       <AnimatePresence>
         {open && openFood ? (
           <motion.div
-            className="absolute inset-0 z-50 flex items-center justify-center px-5"
+            ref={dialogRef}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-y-auto px-5 py-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -119,15 +141,29 @@ export default function Deck() {
             aria-modal="true"
             aria-label={`${openFood.name} card`}
           >
+            {/* Tap-anywhere-to-close. Hidden from the tab order and from
+                assistive tech because the X button and Escape already say it
+                once each. */}
             <button
               type="button"
+              tabIndex={-1}
+              aria-hidden="true"
               onClick={() => setOpen(null)}
-              aria-label="Close the card"
               className="absolute inset-0 cursor-pointer bg-ink/50"
             />
             <motion.div layoutId={`card-${open.foodId}`} transition={bloom} className="relative">
-              <FoodCard food={openFood} review={open} reviewerName={reviewerName} />
+              <FoodCard ref={cardRef} food={openFood} review={open} reviewerName={reviewerName} />
             </motion.div>
+
+            {/* Any card in the deck can be shared, not only the one just made. */}
+            <div className="relative w-full max-w-[260px] shrink-0">
+              <ShareButton
+                targetRef={cardRef}
+                foodId={openFood.id}
+                label="Share this card"
+                onDark
+              />
+            </div>
             <motion.button
               ref={closeRef}
               type="button"

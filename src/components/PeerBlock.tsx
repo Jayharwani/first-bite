@@ -29,13 +29,13 @@ export default function PeerBlock({
   const s = (n: number) => `${n * scale}px`
   const top = stats.topTags[0]
 
-  const line = { fontSize: s(11), lineHeight: s(15) }
+  const line = { fontSize: s(13), lineHeight: s(18) }
   const Num = ({ children }: { children: React.ReactNode }) => (
     <span className="tnum font-bold text-ink">{children}</span>
   )
 
   return (
-    <ul className="text-slate" style={{ display: 'grid', rowGap: s(8) }}>
+    <ul className="text-slate" style={{ display: 'grid', rowGap: s(9) }}>
       <li style={line}>
         <Num>{stats.reviewerCount}</Num> Nouri kids reviewed {foodName.toLowerCase()}
       </li>

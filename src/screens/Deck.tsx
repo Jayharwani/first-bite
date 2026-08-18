@@ -165,6 +165,7 @@ export default function Deck() {
                 onFlipToggle={() => setFlipped((f) => !f)}
                 history={historyFor(state, open.foodId)}
                 stats={peerStatsFor(open.foodId)}
+                hintOnDark
               />
             </div>
 

@@ -33,7 +33,11 @@ export default function CardBack({
   const divider = (
     <div
       aria-hidden="true"
-      style={{ height: 1, backgroundColor: '#EAEBE7', margin: `${s(16)} 0` }}
+      // 12 rather than the specified 16: at the larger type size a long food
+      // name wraps the first peer line, which left barely 3px above the
+      // wordmark. Four pixels off each divider is imperceptible and buys the
+      // longest card real clearance.
+      style={{ height: 1, backgroundColor: '#EAEBE7', margin: `${s(12)} 0` }}
     />
   )
 
@@ -50,12 +54,12 @@ export default function CardBack({
     >
       {/* A label, not a title — the front already introduced this food. */}
       <div className="flex items-center justify-between" style={{ gap: s(8) }}>
-        <span role="img" aria-hidden="true" style={{ fontSize: s(28), lineHeight: 1 }}>
+        <span role="img" aria-hidden="true" style={{ fontSize: s(32), lineHeight: 1 }}>
           {food.emoji}
         </span>
         <span
           className="truncate font-bold text-ink"
-          style={{ fontSize: s(13), lineHeight: s(18) }}
+          style={{ fontSize: s(16), lineHeight: s(21) }}
         >
           {food.name}
         </span>

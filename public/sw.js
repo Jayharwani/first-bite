@@ -27,7 +27,10 @@ self.addEventListener('fetch', (e) => {
 
   if (req.mode === 'navigate' || req.destination === 'document') {
     e.respondWith(
-      fetch(req)
+      // 'no-cache' forces revalidation against the server. Without it the
+      // browser's own HTTP cache can hand back a stale document that points
+      // at a hashed bundle the latest deploy has already replaced.
+      fetch(new Request(req, { cache: 'no-cache' }))
         .then((res) => {
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put('./index.html', copy))

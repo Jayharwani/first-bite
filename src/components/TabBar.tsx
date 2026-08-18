@@ -91,7 +91,14 @@ export default function TabBar({
         whileTap={tap}
         transition={snap}
         aria-label="Start this week&rsquo;s First Bite trial"
-        className="absolute left-1/2 top-0 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill bg-sprout shadow-fab"
+        /* Centring lives here rather than in -translate-x-1/2 -translate-y-1/2.
+           Framer writes the whole `transform` property, so a Tailwind translate
+           utility is erased the instant whileTap applies a scale — the button
+           jumps half its size down and right, and the pointerup then lands
+           outside it, swallowing the first click. As motion values, x and y
+           compose with scale instead of fighting it. */
+        style={{ x: '-50%', y: '-50%' }}
+        className="absolute left-1/2 top-0 flex h-14 w-14 cursor-pointer items-center justify-center rounded-pill bg-sprout shadow-fab"
       >
         <Plus size={26} strokeWidth={2.75} className="text-ink" aria-hidden="true" />
       </motion.button>

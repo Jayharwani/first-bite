@@ -17,6 +17,7 @@ import {
   foodsReviewedCount,
   pendingReRunFoodId,
   reviewsFor,
+  isToday,
 } from './storage'
 
 export type Draft = {
@@ -43,6 +44,8 @@ type Ctx = {
   /** The food being offered a second opinion, if any. */
   pendingReRunFood: ReturnType<typeof foodById>
   pendingReRunReview: Review | undefined
+  /** What the Today card shows. One source of truth for Home and the FAB. */
+  homeState: 'reRun' | 'done' | 'drop'
   foodsReviewed: number
   go: (s: ScreenName) => void
   shuffle: () => void
@@ -87,6 +90,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const reRunId = pendingReRunFoodId(state)
   const pendingReRunFood = foodById(reRunId)
   const pendingReRunReview = latestReviewFor(state, reRunId)
+
+  /**
+   * A mission finished today keeps the Today card for the rest of the day.
+   * A second opinion is allowed to replace the weekly *offer*, but not to
+   * wipe work the kid has just done — that reads as the mission resetting.
+   */
+  const completedToday = Boolean(currentReview && isToday(currentReview.createdAt))
+  const homeState: 'reRun' | 'done' | 'drop' =
+    !completedToday && pendingReRunFood && pendingReRunReview
+      ? 'reRun'
+      : currentReview
+        ? 'done'
+        : 'drop'
 
   const go = useCallback((s: ScreenName) => setScreen(s), [])
 
@@ -181,6 +197,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mintReview,
       pendingReRunFood,
       pendingReRunReview,
+      homeState,
       foodsReviewed: foodsReviewedCount(state),
       go,
       shuffle,
@@ -203,6 +220,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mintReview,
       pendingReRunFood,
       pendingReRunReview,
+      homeState,
       go,
       shuffle,
       startTrial,

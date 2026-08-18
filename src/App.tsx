@@ -14,7 +14,7 @@ import { useSprings } from './lib/motion'
 const TOP_LEVEL = new Set(['home', 'deck'])
 
 export default function App() {
-  const { screen, go, currentReview, openExistingCard } = useApp()
+  const { screen, go, homeState, openExistingCard } = useApp()
   const { soft, reduced } = useSprings()
 
   const SCREENS = {
@@ -27,8 +27,13 @@ export default function App() {
     secondOpinion: <SecondOpinion />,
   } as const
 
-  // The centre button resumes rather than restarts once a review exists.
-  const onAdd = () => (currentReview ? openExistingCard() : go('drop'))
+  // Mirrors whatever the Today card is offering, so the two can never
+  // disagree about what the centre button means.
+  const onAdd = () => {
+    if (homeState === 'reRun') go('secondOpinion')
+    else if (homeState === 'done') openExistingCard()
+    else go('drop')
+  }
 
   return (
     <div className="app-frame">

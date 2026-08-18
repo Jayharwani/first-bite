@@ -31,6 +31,7 @@ export default function Home() {
     currentReview,
     pendingReRunFood,
     pendingReRunReview,
+    homeState,
     foodsReviewed,
     reviewerName,
     go,
@@ -41,8 +42,9 @@ export default function Home() {
 
   if (!currentFood) return null
 
-  // A food waiting on a second opinion outranks this week's drop.
-  const reRun = pendingReRunFood && pendingReRunReview ? pendingReRunFood : null
+  // A food waiting on a second opinion outranks this week's drop, but never
+  // a mission the kid finished today. homeState resolves that in one place.
+  const reRun = homeState === 'reRun' ? pendingReRunFood : null
 
   return (
     <Screen className="overflow-y-auto">
@@ -118,7 +120,7 @@ export default function Home() {
                 </Button>
               </div>
             </>
-          ) : currentReview ? (
+          ) : homeState === 'done' && currentReview ? (
             <>
               <div className="mt-3 flex items-center gap-3">
                 <span

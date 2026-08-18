@@ -18,6 +18,16 @@ const DECLINE_QUIET_WEEKS = 3
  */
 const DECLINE_COOLDOWN_DAYS = 7
 
+/**
+ * How long a food must have been left alone before it can come back.
+ *
+ * Without this a review published a minute ago already qualifies, and the
+ * app offers to re-review the thing the kid just finished. A rematch only
+ * means anything once the memory has faded — the seeded radish arc runs
+ * across months, not minutes.
+ */
+const RERUN_MIN_GAP_DAYS = 21
+
 const daysAgo = (n: number): string => {
   const d = new Date()
   d.setDate(d.getDate() - n)
@@ -37,6 +47,16 @@ export const monthLabel = (iso: string): string =>
 
 export const monthName = (iso: string): string =>
   new Date(iso).toLocaleDateString('en-GB', { month: 'long' })
+
+export const isToday = (iso: string): boolean => {
+  const d = new Date(iso)
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
 
 /**
  * Four reviews already in the deck on first run, plus two foods that carry
@@ -274,7 +294,13 @@ export const pendingReRunFoodId = (state: AppState): string | null => {
     .map((id) => ({ id, all: reviewsFor(state, id) }))
     .filter(({ id, all }) => {
       const latest = all[all.length - 1]
-      return latest.stars <= 2 && all.length < 4 && !declinedRecently(state, id)
+      const gapCutoff = Date.now() - RERUN_MIN_GAP_DAYS * 24 * 60 * 60 * 1000
+      return (
+        latest.stars <= 2 &&
+        all.length < 4 &&
+        Date.parse(latest.createdAt) < gapCutoff &&
+        !declinedRecently(state, id)
+      )
     })
     .sort(
       (a, b) =>
